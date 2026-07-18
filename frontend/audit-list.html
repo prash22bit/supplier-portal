@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Audit Management – SupplierQ</title>
+  <meta name="description" content="Manage supplier quality audits, schedule reviews, track status and corrective actions."/>
+  <link rel="stylesheet" href="css/styles.css"/>
+</head>
+<body>
+  <div id="sidebar-root"></div>
+  <div id="header-root"></div>
+  <main class="main-content">
+    <!-- Top Bar -->
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;flex-wrap:wrap">
+      <div class="search-bar" style="flex:1;min-width:240px">
+        <span class="search-icon">🔍</span>
+        <input id="audit-search" type="text" placeholder="Search audits by supplier, type, or status..." oninput="filterAudits()"/>
+      </div>
+      <select class="form-control" style="width:160px" id="filter-status" onchange="filterAudits()">
+        <option value="">All Statuses</option>
+        <option>Pending</option><option>In Review</option><option>Completed</option><option>Failed</option><option>Scheduled</option>
+      </select>
+      <select class="form-control" style="width:160px" id="filter-type" onchange="filterAudits()">
+        <option value="">All Types</option>
+        <option>Annual ISO</option><option>Process Audit</option><option>Compliance Audit</option><option>System Audit</option><option>Surprise Audit</option>
+      </select>
+      <button class="btn btn-primary" onclick="openModal()">+ Schedule Audit</button>
+    </div>
+
+    <!-- KPI Row -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
+      <div class="kpi-card blue"><div class="kpi-icon">📋</div><div class="kpi-value" id="k-total">0</div><div class="kpi-label">Total Audits</div></div>
+      <div class="kpi-card amber"><div class="kpi-icon">⏳</div><div class="kpi-value" id="k-pending">0</div><div class="kpi-label">Pending</div></div>
+      <div class="kpi-card green"><div class="kpi-icon">✅</div><div class="kpi-value" id="k-completed">0</div><div class="kpi-label">Completed</div></div>
+      <div class="kpi-card red"><div class="kpi-icon">❌</div><div class="kpi-value" id="k-failed">0</div><div class="kpi-label">Failed</div></div>
+    </div>
+
+    <!-- Audit Table -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div>
+          <h3 style="font-size:16px;font-weight:700">Audit Registry</h3>
+          <p style="font-size:12px;color:var(--text-muted)" id="audit-count-label">Loading...</p>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="exportCSV()">📥 Export CSV</button>
+          <button class="btn btn-secondary btn-sm" onclick="loadAudits()">🔄 Refresh</button>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="select-all" onchange="toggleAll(this)"/></th>
+              <th>Audit ID</th><th>Supplier</th><th>Type</th><th>Auditor</th>
+              <th>Scheduled Date</th><th>Score</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="audit-tbody"><tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">Loading audits...</td></tr></tbody>
+        </table>
+      </div>
+      <!-- Pagination -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+        <div style="font-size:13px;color:var(--text-muted)" id="page-info">Page 1 of 1</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary btn-sm" id="prev-btn" onclick="changePage(-1)" disabled>← Prev</button>
+          <button class="btn btn-secondary btn-sm" id="next-btn" onclick="changePage(1)">Next →</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Schedule Audit Modal -->
+  <div class="modal-overlay" id="audit-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>📋 Schedule New Audit</h3>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Supplier *</label>
+        <select class="form-control" id="m-supplier">
+          <option value="">Select Supplier</option>
+          <option>Tata AutoComp Systems</option><option>Mahindra Composites</option>
+          <option>Bosch India Electronics</option><option>Rane Holdings</option>
+          <option>Sundaram-Clayton</option><option>Lucas TVS</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Audit Type *</label>
+        <select class="form-control" id="m-type">
+          <option>Annual ISO</option><option>Process Audit</option>
+          <option>Compliance Audit</option><option>System Audit</option><option>Surprise Audit</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Lead Auditor *</label>
+        <input class="form-control" id="m-auditor" placeholder="Auditor name"/>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="form-group">
+          <label class="form-label">Scheduled Date *</label>
+          <input type="date" class="form-control" id="m-date"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Duration (days)</label>
+          <input type="number" class="form-control" id="m-duration" value="2" min="1" max="10"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Scope / Notes</label>
+        <textarea class="form-control" id="m-notes" rows="3" placeholder="Audit scope, specific areas to review..."></textarea>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:flex-end">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="createAudit()">Create Audit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audit Detail Modal -->
+  <div class="modal-overlay" id="detail-modal">
+    <div class="modal" style="max-width:680px">
+      <div class="modal-header">
+        <h3 id="detail-title">Audit Details</h3>
+        <button class="modal-close" onclick="document.getElementById('detail-modal').classList.remove('open')">✕</button>
+      </div>
+      <div id="detail-body"></div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    requireAuth(['admin','quality_manager']);
+    document.getElementById('sidebar-root').innerHTML = renderSidebar('audits');
+    document.getElementById('header-root').innerHTML = renderHeader('Audit Management', 'Schedule, track and review supplier quality audits');
+
+    const DEMO_AUDITS = [
+      {auditId:'AUD-2024-041',supplierName:'Tata AutoComp Systems',auditType:'Annual ISO',auditorName:'Rajesh Kumar',scheduledDate:'2024-04-12',overallScore:94,status:'Completed'},
+      {auditId:'AUD-2024-040',supplierName:'Motherson Sumi',auditType:'Process Audit',auditorName:'Priya Sharma',scheduledDate:'2024-04-10',overallScore:82,status:'Completed'},
+      {auditId:'AUD-2024-039',supplierName:'Rane Holdings',auditType:'Compliance Audit',auditorName:'Amit Singh',scheduledDate:'2024-04-08',overallScore:61,status:'Failed'},
+      {auditId:'AUD-2024-038',supplierName:'Bosch India Electronics',auditType:'System Audit',auditorName:'Deepa Rao',scheduledDate:'2024-04-05',overallScore:96,status:'Completed'},
+      {auditId:'AUD-2024-037',supplierName:'Valeo India',auditType:'Annual ISO',auditorName:'Sanjay Patel',scheduledDate:'2024-04-02',overallScore:88,status:'Completed'},
+      {auditId:'AUD-2024-036',supplierName:'Lucas TVS',auditType:'Process Audit',auditorName:'Meera Iyer',scheduledDate:'2024-03-28',overallScore:0,status:'In Review'},
+      {auditId:'AUD-2024-035',supplierName:'Sundram Fasteners',auditType:'Compliance Audit',auditorName:'Kiran Reddy',scheduledDate:'2024-05-15',overallScore:0,status:'Pending'},
+      {auditId:'AUD-2024-034',supplierName:'Minda Industries',auditType:'Surprise Audit',auditorName:'Anand Kumar',scheduledDate:'2024-05-10',overallScore:0,status:'Scheduled'},
+      {auditId:'AUD-2024-033',supplierName:'Gabriel India',auditType:'Annual ISO',auditorName:'Ravi Shankar',scheduledDate:'2024-03-20',overallScore:79,status:'Completed'},
+      {auditId:'AUD-2024-032',supplierName:'Exide Industries',auditType:'System Audit',auditorName:'Priya Sharma',scheduledDate:'2024-03-15',overallScore:85,status:'Completed'},
+    ];
+
+    let allAudits = [], filtered = [], page = 1, perPage = 8;
+
+    async function loadAudits() {
+      const data = await apiFetch('/audits');
+      allAudits = data?.audits || DEMO_AUDITS;
+      filtered = [...allAudits];
+      renderKPIs();
+      renderTable();
+    }
+
+    function renderKPIs() {
+      document.getElementById('k-total').textContent = allAudits.length;
+      document.getElementById('k-pending').textContent = allAudits.filter(a=>a.status==='Pending'||a.status==='Scheduled').length;
+      document.getElementById('k-completed').textContent = allAudits.filter(a=>a.status==='Completed').length;
+      document.getElementById('k-failed').textContent = allAudits.filter(a=>a.status==='Failed').length;
+    }
+
+    function renderTable() {
+      const start = (page-1)*perPage, end = start+perPage;
+      const rows = filtered.slice(start, end);
+      document.getElementById('audit-count-label').textContent = `Showing ${start+1}–${Math.min(end,filtered.length)} of ${filtered.length} audits`;
+      document.getElementById('audit-tbody').innerHTML = rows.length ? rows.map(a => `
+        <tr>
+          <td><input type="checkbox" class="row-check" value="${a.auditId}"/></td>
+          <td><span style="font-family:monospace;font-size:12px;color:var(--accent-blue)">${a.auditId}</span></td>
+          <td><span style="font-weight:600;color:var(--text-primary)">${a.supplierName}</span></td>
+          <td>${a.auditType}</td>
+          <td>${a.auditorName||'—'}</td>
+          <td>${formatDate(a.scheduledDate)}</td>
+          <td>${a.overallScore > 0 ? scoreBar(a.overallScore) : '<span style="color:var(--text-muted);font-size:12px">N/A</span>'}</td>
+          <td>${statusBadge(a.status)}</td>
+          <td>
+            <button class="btn btn-sm btn-secondary" onclick="viewDetail(${JSON.stringify(a).split('"').join("'")})">View</button>
+          </td>
+        </tr>`).join('') : '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">No audits found matching filters.</td></tr>';
+
+      document.getElementById('page-info').textContent = `Page ${page} of ${Math.ceil(filtered.length/perPage)}`;
+      document.getElementById('prev-btn').disabled = page <= 1;
+      document.getElementById('next-btn').disabled = page >= Math.ceil(filtered.length/perPage);
+    }
+
+    function filterAudits() {
+      const q = document.getElementById('audit-search').value.toLowerCase();
+      const st = document.getElementById('filter-status').value;
+      const ty = document.getElementById('filter-type').value;
+      filtered = allAudits.filter(a =>
+        (!q || a.supplierName?.toLowerCase().includes(q) || a.auditId?.toLowerCase().includes(q) || a.auditorName?.toLowerCase().includes(q)) &&
+        (!st || a.status === st) && (!ty || a.auditType === ty)
+      );
+      page = 1; renderTable();
+    }
+
+    function changePage(dir) { page = Math.max(1, Math.min(page+dir, Math.ceil(filtered.length/perPage))); renderTable(); }
+    function toggleAll(cb) { document.querySelectorAll('.row-check').forEach(c => c.checked = cb.checked); }
+    function openModal() { document.getElementById('audit-modal').classList.add('open'); document.getElementById('m-date').min = new Date().toISOString().split('T')[0]; }
+    function closeModal() { document.getElementById('audit-modal').classList.remove('open'); }
+
+    async function createAudit() {
+      const supplier = document.getElementById('m-supplier').value;
+      if (!supplier) { showNotification('⚠️ Please select a supplier', 'warning'); return; }
+      const newAudit = {
+        auditId: 'AUD-' + Date.now().toString().slice(-6),
+        supplierName: supplier,
+        auditType: document.getElementById('m-type').value,
+        auditorName: document.getElementById('m-auditor').value || 'TBD',
+        scheduledDate: document.getElementById('m-date').value,
+        overallScore: 0, status: 'Scheduled'
+      };
+      await apiFetch('/audits', { method:'POST', body: JSON.stringify(newAudit) });
+      allAudits.unshift(newAudit); filtered = [...allAudits];
+      renderKPIs(); renderTable();
+      closeModal();
+      showNotification('✅ Audit scheduled successfully!', 'success');
+    }
+
+    function viewDetail(a) {
+      if (typeof a === 'string') a = JSON.parse(a.split("'").join('"'));
+      document.getElementById('detail-title').textContent = `Audit: ${a.auditId}`;
+      document.getElementById('detail-body').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+          ${[['Supplier',a.supplierName],['Audit ID',a.auditId],['Type',a.auditType],['Auditor',a.auditorName||'—'],
+             ['Scheduled',formatDate(a.scheduledDate)],['Status',statusBadge(a.status)],
+             ['Overall Score',a.overallScore > 0 ? a.overallScore+'/100' : 'N/A'],['Created',formatDate(a.createdAt)]
+            ].map(([k,v]) => `<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px">
+              <div style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;margin-bottom:4px">${k}</div>
+              <div style="font-weight:600">${v||'—'}</div></div>`).join('')}
+        </div>
+        ${a.overallScore > 0 ? `
+          <div style="margin-bottom:20px"><h4 style="font-size:14px;font-weight:700;margin-bottom:12px">Audit Scorecard</h4>
+            ${[['Quality Management System',92],['Production Process Control',88],['Document Control',95],['Corrective Action Process',85],['Supplier Management',91]].map(([label,score])=>`
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+                <div style="width:200px;font-size:13px">${label}</div>${scoreBar(score)}
+              </div>`).join('')}
+          </div>` : ''}
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn btn-secondary btn-sm">📥 Download Report</button>
+          ${a.status==='Pending'||a.status==='Scheduled' ? '<button class="btn btn-primary btn-sm">✏️ Edit Audit</button>' : ''}
+          ${a.status==='Failed' ? '<button class="btn btn-success btn-sm">🔄 Initiate CAPA</button>' : ''}
+        </div>`;
+      document.getElementById('detail-modal').classList.add('open');
+    }
+
+    function exportCSV() {
+      const rows = [['Audit ID','Supplier','Type','Auditor','Date','Score','Status'],
+        ...filtered.map(a => [a.auditId,a.supplierName,a.auditType,a.auditorName||'',a.scheduledDate,a.overallScore,a.status])];
+      const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+      const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+      a.download = 'audits-export.csv'; a.click();
+    }
+
+    loadAudits();
+  </script>
+</body>
+</html>

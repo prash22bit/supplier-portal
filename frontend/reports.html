@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reports & Analytics – SupplierQ</title>
+  <meta name="description" content="Supplier quality analytics with Athena-powered reports, trend charts, and downloadable insights."/>
+  <link rel="stylesheet" href="css/styles.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div id="sidebar-root"></div>
+  <div id="header-root"></div>
+  <main class="main-content">
+    <!-- Tab Navigation -->
+    <div class="tabs">
+      <button class="tab-btn active" id="tab-overview" onclick="switchTab('overview')">📊 Overview</button>
+      <button class="tab-btn" id="tab-suppliers" onclick="switchTab('suppliers')">🏢 Supplier Analysis</button>
+      <button class="tab-btn" id="tab-trends" onclick="switchTab('trends')">📈 Trends</button>
+      <button class="tab-btn" id="tab-athena" onclick="switchTab('athena')">🔍 Athena Queries</button>
+    </div>
+
+    <!-- Overview Tab -->
+    <div id="tab-content-overview">
+      <div class="grid-2">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+            <div><h3 style="font-size:15px;font-weight:700">Compliance Score Distribution</h3><p style="font-size:12px;color:var(--text-muted)">All 340 suppliers</p></div>
+          </div>
+          <div class="chart-container"><canvas id="distChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div style="margin-bottom:20px"><h3 style="font-size:15px;font-weight:700">Audit Outcomes (2024)</h3></div>
+          <div class="chart-container"><canvas id="outcomeChart"></canvas></div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div style="margin-bottom:20px"><h3 style="font-size:15px;font-weight:700">Monthly New Supplier Onboarding</h3></div>
+          <div class="chart-container"><canvas id="onboardChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div style="margin-bottom:20px"><h3 style="font-size:15px;font-weight:700">Non-Conformance Root Causes</h3></div>
+          <div class="chart-container"><canvas id="ncChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Supplier Analysis Tab -->
+    <div id="tab-content-suppliers" style="display:none">
+      <div class="card" style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+          <div class="search-bar" style="flex:1;min-width:200px">
+            <span class="search-icon">🔍</span>
+            <input type="text" placeholder="Search suppliers..." id="sup-search" oninput="filterSuppliers()"/>
+          </div>
+          <select class="form-control" style="width:150px" id="sup-state" onchange="filterSuppliers()">
+            <option value="">All States</option>
+            <option>Maharashtra</option><option>Tamil Nadu</option><option>Karnataka</option>
+            <option>Gujarat</option><option>Haryana</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="exportSupplierCSV()">📥 Export</button>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead><tr><th>#</th><th>Company</th><th>State</th><th>Category</th><th>Score</th><th>Risk</th><th>Last Audit</th><th>Certs</th></tr></thead>
+            <tbody id="supplier-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trends Tab -->
+    <div id="tab-content-trends" style="display:none">
+      <div class="card" style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div><h3 style="font-size:15px;font-weight:700">12-Month Quality Score Trend</h3></div>
+          <select class="form-control" style="width:160px" onchange="updateTrendChart(this.value)">
+            <option value="score">Avg Compliance Score</option>
+            <option value="audits">Audits Completed</option>
+            <option value="nc">Non-Conformances</option>
+          </select>
+        </div>
+        <div class="chart-container" style="height:320px"><canvas id="trendBigChart"></canvas></div>
+      </div>
+      <div class="grid-3">
+        <div class="card">
+          <h4 style="font-size:14px;font-weight:700;margin-bottom:16px">Top 5 Performers</h4>
+          ${['Bosch India (96)','Tata AutoComp (94)','Motherson Sumi (91)','Valeo India (88)','Sundram (85)'].map((s,i) =>
+            `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div style="width:24px;height:24px;border-radius:50%;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">${i+1}</div>
+              <div style="flex:1;font-size:13px">${s.split('(')[0]}</div>
+              <span class="badge badge-green">${s.match(/\((\d+)\)/)[1]}</span>
+            </div>`
+          ).join('')}
+        </div>
+        <div class="card">
+          <h4 style="font-size:14px;font-weight:700;margin-bottom:16px">Bottom 5 – Need Attention</h4>
+          ${['Rane Holdings (61)','XYZ Plastics (65)','ABC Rubber (68)','PQR Metals (71)','MNO Seals (73)'].map((s,i) =>
+            `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div style="width:24px;height:24px;border-radius:50%;background:var(--gradient-danger);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">${i+1}</div>
+              <div style="flex:1;font-size:13px">${s.split('(')[0]}</div>
+              <span class="badge badge-red">${s.match(/\((\d+)\)/)[1]}</span>
+            </div>`
+          ).join('')}
+        </div>
+        <div class="card">
+          <h4 style="font-size:14px;font-weight:700;margin-bottom:16px">Most Improved</h4>
+          ${['Gabriel India (+14)','Minda Ind. (+11)','Exide Ind. (+9)','UNO Minda (+7)','JBM Auto (+6)'].map((s,i) =>
+            `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div style="width:24px;height:24px;border-radius:50%;background:rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center;font-size:14px">📈</div>
+              <div style="flex:1;font-size:13px">${s.split('(')[0]}</div>
+              <span class="badge badge-green">${s.match(/\(([^)]+)\)/)[1]}</span>
+            </div>`
+          ).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- Athena Queries Tab -->
+    <div id="tab-content-athena" style="display:none">
+      <div class="alert alert-info" style="margin-bottom:20px">
+        ☁️ <strong>AWS Athena Integration:</strong> These named queries run against your audit data catalogued by AWS Glue. Results are stored in S3 and cached for 5 minutes.
+      </div>
+      <div class="grid-2">
+        ${[
+          {name:'Supplier Compliance Summary',desc:'Average scores by state with supplier counts',icon:'📊'},
+          {name:'Expiring Certificates',desc:'Certs expiring in next 90 days ordered by urgency',icon:'📅'},
+          {name:'Audit Trend Analysis',desc:'Monthly audit status distribution over time',icon:'📈'},
+          {name:'Non-Conformance Tracker',desc:'Open CAR items with aging analysis',icon:'🔴'},
+        ].map(q => `
+          <div class="card">
+            <div style="font-size:24px;margin-bottom:12px">${q.icon}</div>
+            <h4 style="font-size:14px;font-weight:700;margin-bottom:6px">${q.name}</h4>
+            <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px">${q.desc}</p>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-primary btn-sm" onclick="runQuery('${q.name}')">▶ Run Query</button>
+              <button class="btn btn-secondary btn-sm" onclick="showSQL('${q.name}')">📝 View SQL</button>
+            </div>
+            <div id="q-result-${q.name.replace(/\s+/g,'-')}" style="margin-top:12px;display:none"></div>
+          </div>`).join('')}
+      </div>
+    </div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script>
+    requireAuth(['admin','quality_manager']);
+    document.getElementById('sidebar-root').innerHTML = renderSidebar('reports');
+    document.getElementById('header-root').innerHTML = renderHeader('Reports & Analytics', 'Athena-powered insights across 340+ suppliers');
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('[id^="tab-content-"]').forEach(el => el.style.display = 'none');
+      document.getElementById('tab-' + tab).classList.add('active');
+      document.getElementById('tab-content-' + tab).style.display = 'block';
+    }
+
+    // Overview Charts
+    new Chart(document.getElementById('distChart'), {
+      type: 'bar',
+      data: {
+        labels: ['<50','50-60','60-70','70-80','80-90','90-100'],
+        datasets: [{
+          label: 'Suppliers',
+          data: [8, 18, 35, 89, 142, 48],
+          backgroundColor: ['#ef444466','#f59e0b66','#f59e0b66','#3b82f666','#10b98166','#10b98188'],
+          borderColor: ['#ef4444','#f59e0b','#f59e0b','#3b82f6','#10b981','#10b981'],
+          borderWidth: 1, borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { x: { ticks: { color: '#64748b' }, grid: { display: false } }, y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } } },
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    new Chart(document.getElementById('outcomeChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Passed','Conditionally Passed','Failed','Pending'],
+        datasets: [{ data: [198, 87, 32, 23],
+          backgroundColor: ['#10b98133','#f59e0b33','#ef444433','#64748b33'],
+          borderColor: ['#10b981','#f59e0b','#ef4444','#64748b'], borderWidth: 2 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '60%',
+        plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } } }
+      }
+    });
+
+    new Chart(document.getElementById('onboardChart'), {
+      type: 'bar',
+      data: {
+        labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+        datasets: [{
+          label: 'New Suppliers', data: [8,5,12,7,9,14,6,11,8,13,7,4],
+          backgroundColor: 'rgba(139,92,246,0.5)', borderColor: '#8b5cf6', borderWidth: 1, borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { x: { ticks: { color: '#64748b' }, grid: { display: false } }, y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } } },
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    new Chart(document.getElementById('ncChart'), {
+      type: 'pie',
+      data: {
+        labels: ['Process Control','Documentation','Equipment','Training','Supplier Sub-tier','Others'],
+        datasets: [{ data: [28, 22, 18, 15, 10, 7],
+          backgroundColor: ['#3b82f688','#8b5cf688','#06b6d488','#10b98188','#f59e0b88','#64748b88'],
+          borderColor: ['#3b82f6','#8b5cf6','#06b6d4','#10b981','#f59e0b','#64748b'], borderWidth: 1 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 11 } } } }
+      }
+    });
+
+    // Supplier table
+    const SUPPLIERS = [
+      {rank:1,companyName:'Bosch India Electronics',state:'Karnataka',category:'Electronics',complianceScore:96,riskLevel:'Low',lastAuditDate:'2024-04-01',certCount:7},
+      {rank:2,companyName:'Tata AutoComp Systems',state:'Maharashtra',category:'Metal Components',complianceScore:94,riskLevel:'Low',lastAuditDate:'2024-03-15',certCount:5},
+      {rank:3,companyName:'Motherson Sumi',state:'Haryana',category:'Plastics & Composites',complianceScore:91,riskLevel:'Low',lastAuditDate:'2024-04-10',certCount:4},
+      {rank:4,companyName:'Valeo India',state:'Tamil Nadu',category:'Electronics',complianceScore:88,riskLevel:'Low',lastAuditDate:'2024-04-02',certCount:6},
+      {rank:5,companyName:'Sundaram-Clayton',state:'Tamil Nadu',category:'Die Casting',complianceScore:88,riskLevel:'Low',lastAuditDate:'2024-03-22',certCount:4},
+      {rank:6,companyName:'Mahindra Composites',state:'Tamil Nadu',category:'Plastics & Composites',complianceScore:78,riskLevel:'Medium',lastAuditDate:'2024-02-28',certCount:3},
+      {rank:7,companyName:'Rane Holdings',state:'Tamil Nadu',category:'Steering Systems',complianceScore:65,riskLevel:'High',lastAuditDate:'2024-01-15',certCount:2},
+    ];
+
+    let filteredSup = [...SUPPLIERS];
+    function renderSupplierTable() {
+      document.getElementById('supplier-tbody').innerHTML = filteredSup.map(s => `
+        <tr>
+          <td style="color:var(--text-muted);font-size:12px">${s.rank}</td>
+          <td style="font-weight:600;color:var(--text-primary)">${s.companyName}</td>
+          <td>${s.state}</td><td>${s.category}</td>
+          <td>${scoreBar(s.complianceScore)}</td>
+          <td>${statusBadge(s.riskLevel)}</td>
+          <td>${formatDate(s.lastAuditDate)}</td>
+          <td style="text-align:center">${s.certCount}</td>
+        </tr>`).join('');
+    }
+    renderSupplierTable();
+
+    function filterSuppliers() {
+      const q = document.getElementById('sup-search').value.toLowerCase();
+      const st = document.getElementById('sup-state').value;
+      filteredSup = SUPPLIERS.filter(s => (!q || s.companyName.toLowerCase().includes(q)) && (!st || s.state === st));
+      renderSupplierTable();
+    }
+
+    function exportSupplierCSV() {
+      const rows = [['Rank','Company','State','Category','Score','Risk','Last Audit'],
+        ...filteredSup.map(s => [s.rank, s.companyName, s.state, s.category, s.complianceScore, s.riskLevel, s.lastAuditDate])];
+      const csv = rows.map(r => r.join(',')).join('\n');
+      const a = document.createElement('a'); a.href = 'data:text/csv,' + encodeURIComponent(csv);
+      a.download = 'supplier-analysis.csv'; a.click();
+    }
+
+    // Trends chart
+    const trendData = { score: [78.4,79.1,80.2,79.8,81.5,81.2,80.8,82.1,83.4,82.9,81.7,81.2], audits: [28,22,31,27,35,18,29,33,24,38,21,16], nc: [12,10,14,11,9,15,10,8,11,7,9,13] };
+    let trendChart;
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    function updateTrendChart(metric) {
+      if (trendChart) trendChart.destroy();
+      trendChart = new Chart(document.getElementById('trendBigChart'), {
+        type: 'line',
+        data: { labels: months, datasets: [{ label: metric, data: trendData[metric], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.4, pointRadius: 5 }] },
+        options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' } } }, plugins: { legend: { display: false } } }
+      });
+    }
+    updateTrendChart('score');
+
+    function runQuery(name) {
+      const key = 'q-result-' + name.replace(/\s+/g, '-');
+      const el = document.getElementById(key);
+      el.style.display = 'block';
+      el.innerHTML = '<div class="badge badge-amber" style="display:inline-flex"><span class="spinning">⟳</span> Running Athena query...</div>';
+      setTimeout(() => {
+        el.innerHTML = '<div class="alert alert-success" style="margin:0">✅ Query completed! Results exported to s3://sqp-analytics/athena-results/</div>';
+      }, 2000);
+    }
+
+    function showSQL(name) {
+      showNotification(`📝 SQL for "${name}" — check AWS Athena Console in the sqp-workgroup`, 'info');
+    }
+  </script>
+</body>
+</html>

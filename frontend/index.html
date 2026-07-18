@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Supplier Quality Audit & Compliance Portal</title>
+  <meta name="description" content="Enterprise supplier quality management and compliance tracking portal for manufacturing operations."/>
+  <link rel="stylesheet" href="css/styles.css"/>
+  <style>
+    .particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    .particle {
+      position: absolute; width: 2px; height: 2px; border-radius: 50%;
+      background: rgba(59,130,246,0.4); animation: float linear infinite;
+    }
+    @keyframes float {
+      0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { transform: translateY(-100px) translateX(60px); opacity: 0; }
+    }
+    .login-card { position: relative; z-index: 1; }
+    .role-grid { display: flex; gap: 8px; margin-bottom: 20px; }
+    .error-msg { color: #f87171; font-size: 12px; margin-top: 8px; display: none; }
+    .error-msg.show { display: block; }
+    .login-btn {
+      width: 100%; padding: 12px; border-radius: 10px;
+      background: var(--gradient-primary); border: none;
+      color: white; font-size: 15px; font-weight: 700;
+      cursor: pointer; transition: all 0.3s;
+      box-shadow: 0 4px 20px rgba(59,130,246,0.4);
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .login-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(59,130,246,0.5); }
+    .login-btn:active { transform: translateY(0); }
+    .demo-note {
+      text-align: center; margin-top: 20px;
+      font-size: 11px; color: var(--text-muted); line-height: 1.6;
+    }
+    .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 24px; }
+    .feature-item {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px; display: flex; align-items: center; gap: 10px;
+    }
+    .feature-icon { font-size: 18px; }
+    .feature-text { font-size: 11px; color: var(--text-muted); line-height: 1.3; }
+    .feature-text strong { color: var(--text-secondary); display: block; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="particles" id="particles"></div>
+  <div class="login-page">
+    <div class="login-card animate-fade">
+      <div class="login-logo">
+        <div class="login-logo-icon">🏭</div>
+        <h1>SupplierQ Portal</h1>
+        <p>Supplier Quality Audit & Compliance Management</p>
+      </div>
+
+      <div class="role-grid">
+        <button class="role-btn active" id="role-admin" onclick="setRole('admin')">
+          👤 Admin / QM
+        </button>
+        <button class="role-btn" id="role-supplier" onclick="setRole('supplier')">
+          🏢 Supplier
+        </button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input type="email" id="email" class="form-control" placeholder="Enter your email" value="admin@supplierportal.com"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div style="position:relative">
+          <input type="password" id="password" class="form-control" placeholder="Enter your password" value="Admin@1234"/>
+          <button onclick="togglePwd()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px" id="pwd-eye">👁</button>
+        </div>
+      </div>
+      <p class="error-msg" id="error-msg">❌ Invalid credentials. Please try again.</p>
+
+      <button class="login-btn" onclick="doLogin()" id="loginBtn">
+        <span id="login-text">Sign In</span>
+        <span id="login-icon">→</span>
+      </button>
+
+      <div class="login-divider">or</div>
+      <button class="login-btn" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);box-shadow:none" onclick="demoLogin()">
+        🚀 Quick Demo Login
+      </button>
+
+      <div class="demo-note">
+        <strong style="color:var(--text-secondary)">Demo Credentials</strong><br/>
+        Admin: admin@supplierportal.com / Admin@1234<br/>
+        Supplier: supplier@example.com / Supplier@1234
+      </div>
+
+      <div class="feature-grid">
+        <div class="feature-item"><span class="feature-icon">📊</span><div class="feature-text"><strong>Real-time Dashboard</strong>340+ suppliers tracked</div></div>
+        <div class="feature-item"><span class="feature-icon">🤖</span><div class="feature-text"><strong>AI Document Scan</strong>AWS Textract powered</div></div>
+        <div class="feature-item"><span class="feature-icon">🔔</span><div class="feature-text"><strong>Smart Alerts</strong>Cert expiry notifications</div></div>
+        <div class="feature-item"><span class="feature-icon">📋</span><div class="feature-text"><strong>Audit Trails</strong>Full compliance history</div></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let selectedRole = 'admin';
+
+    // Particles
+    const container = document.getElementById('particles');
+    for (let i = 0; i < 30; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.cssText = `left:${Math.random()*100}%;animation-duration:${8+Math.random()*12}s;animation-delay:${Math.random()*10}s;width:${1+Math.random()*3}px;height:${1+Math.random()*3}px`;
+      container.appendChild(p);
+    }
+
+    function setRole(role) {
+      selectedRole = role;
+      document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('role-' + role).classList.add('active');
+      if (role === 'supplier') {
+        document.getElementById('email').value = 'supplier@example.com';
+        document.getElementById('password').value = 'Supplier@1234';
+      } else {
+        document.getElementById('email').value = 'admin@supplierportal.com';
+        document.getElementById('password').value = 'Admin@1234';
+      }
+    }
+
+    function togglePwd() {
+      const p = document.getElementById('password');
+      const e = document.getElementById('pwd-eye');
+      p.type = p.type === 'password' ? 'text' : 'password';
+      e.textContent = p.type === 'password' ? '👁' : '🙈';
+    }
+
+    function doLogin() {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const btn = document.getElementById('loginBtn');
+      const errMsg = document.getElementById('error-msg');
+      errMsg.classList.remove('show');
+
+      if (!email || !password) {
+        errMsg.textContent = '⚠️ Please enter email and password.';
+        errMsg.classList.add('show'); return;
+      }
+
+      btn.innerHTML = '<span class="spinning">⟳</span> Signing in...';
+      btn.disabled = true;
+
+      setTimeout(() => {
+        // Demo auth — in production this calls Cognito
+        const validCreds = [
+          {email: 'admin@supplierportal.com', pwd: 'Admin@1234', role: 'admin'},
+          {email: 'qm@supplierportal.com', pwd: 'QM@1234', role: 'quality_manager'},
+          {email: 'supplier@example.com', pwd: 'Supplier@1234', role: 'supplier'}
+        ];
+        const match = validCreds.find(c => c.email === email && c.pwd === password);
+        if (match || email.includes('@')) { // demo: any valid email format
+          sessionStorage.setItem('user', JSON.stringify({
+            email, role: match?.role || selectedRole,
+            name: email.split('@')[0].replace('.', ' '),
+            token: 'demo-token-' + Date.now()
+          }));
+          if ((match?.role || selectedRole) === 'supplier') {
+            window.location.href = 'supplier-portal.html';
+          } else {
+            window.location.href = 'dashboard.html';
+          }
+        } else {
+          errMsg.textContent = '❌ Invalid credentials. Please try again.';
+          errMsg.classList.add('show');
+          btn.innerHTML = '<span>Sign In</span><span>→</span>';
+          btn.disabled = false;
+        }
+      }, 1200);
+    }
+
+    function demoLogin() {
+      sessionStorage.setItem('user', JSON.stringify({
+        email: 'admin@supplierportal.com', role: 'admin',
+        name: 'Admin User', token: 'demo-token-' + Date.now()
+      }));
+      window.location.href = 'dashboard.html';
+    }
+
+    // Enter key
+    document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  </script>
+</body>
+</html>

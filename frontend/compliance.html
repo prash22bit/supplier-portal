@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Compliance Certificates – SupplierQ</title>
+  <meta name="description" content="Track supplier compliance certificates, expiry dates, and renewal status."/>
+  <link rel="stylesheet" href="css/styles.css"/>
+</head>
+<body>
+  <div id="sidebar-root"></div>
+  <div id="header-root"></div>
+  <main class="main-content">
+    <!-- Filters -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+      <div class="search-bar" style="flex:1;min-width:220px">
+        <span class="search-icon">🔍</span>
+        <input id="cert-search" type="text" placeholder="Search by supplier or certificate type..." oninput="filterCerts()"/>
+      </div>
+      <select class="form-control" style="width:150px" id="filter-urgency" onchange="filterCerts()">
+        <option value="">All Urgency</option>
+        <option value="critical">🔴 Critical (&lt;30d)</option>
+        <option value="warning">🟡 Warning (&lt;60d)</option>
+        <option value="ok">🟢 OK (&gt;60d)</option>
+        <option value="expired">⚫ Expired</option>
+      </select>
+      <select class="form-control" style="width:170px" id="filter-cert-type" onchange="filterCerts()">
+        <option value="">All Certificate Types</option>
+        <option>ISO 9001:2015</option><option>IATF 16949</option>
+        <option>ISO 14001</option><option>ISO 45001</option><option>VDA 6.3</option>
+      </select>
+      <button class="btn btn-primary" onclick="openAddModal()">+ Add Certificate</button>
+    </div>
+
+    <!-- Summary Tiles -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px">
+      <div class="kpi-card red"><div class="kpi-icon">🚨</div><div class="kpi-value" id="k-critical">0</div><div class="kpi-label">Critical (&lt;30 days)</div></div>
+      <div class="kpi-card amber"><div class="kpi-icon">⚠️</div><div class="kpi-value" id="k-warning">0</div><div class="kpi-label">Warning (&lt;60 days)</div></div>
+      <div class="kpi-card green"><div class="kpi-icon">✅</div><div class="kpi-value" id="k-ok">0</div><div class="kpi-label">Valid (&gt;60 days)</div></div>
+      <div class="kpi-card blue"><div class="kpi-icon">📜</div><div class="kpi-value" id="k-total-c">0</div><div class="kpi-label">Total Certificates</div></div>
+    </div>
+
+    <!-- Critical Alert Banner -->
+    <div id="critical-banner"></div>
+
+    <!-- Cert Cards Grid -->
+    <div id="cert-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:24px">
+      <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted)">Loading certificates...</div>
+    </div>
+
+    <!-- Table View Toggle -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <h3 style="font-size:15px;font-weight:700">Certificate Registry (Table View)</h3>
+        <button class="btn btn-secondary btn-sm" onclick="exportCertCSV()">📥 Export</button>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead><tr><th>Supplier</th><th>Certificate Type</th><th>Cert No.</th><th>Issue Date</th><th>Expiry Date</th><th>Days Left</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="cert-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add Cert Modal -->
+  <div class="modal-overlay" id="add-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>📜 Add Certificate</h3>
+        <button class="modal-close" onclick="document.getElementById('add-modal').classList.remove('open')">✕</button>
+      </div>
+      <div class="form-group"><label class="form-label">Supplier *</label>
+        <select class="form-control" id="c-supplier"><option value="">Select Supplier</option>
+          <option>Tata AutoComp Systems</option><option>Bosch India Electronics</option>
+          <option>Rane Holdings</option><option>Lucas TVS</option><option>Sundram Fasteners</option>
+        </select></div>
+      <div class="form-group"><label class="form-label">Certificate Type *</label>
+        <select class="form-control" id="c-type">
+          <option>ISO 9001:2015</option><option>IATF 16949</option><option>ISO 14001</option><option>ISO 45001</option><option>VDA 6.3</option>
+        </select></div>
+      <div class="form-group"><label class="form-label">Certificate Number</label>
+        <input class="form-control" id="c-num" placeholder="e.g. ISO-QMS-2024-8821"/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="form-group"><label class="form-label">Issue Date *</label><input type="date" class="form-control" id="c-issue"/></div>
+        <div class="form-group"><label class="form-label">Expiry Date *</label><input type="date" class="form-control" id="c-expiry"/></div>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:flex-end">
+        <button class="btn btn-secondary" onclick="document.getElementById('add-modal').classList.remove('open')">Cancel</button>
+        <button class="btn btn-primary" onclick="addCert()">Add Certificate</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    requireAuth(['admin','quality_manager']);
+    document.getElementById('sidebar-root').innerHTML = renderSidebar('compliance');
+    document.getElementById('header-root').innerHTML = renderHeader('Compliance Certificates', 'Track certificate validity and renewal schedule');
+
+    const DEMO_CERTS = [
+      {certId:'CERT-001',supplierName:'Rane Holdings',certType:'ISO 9001:2015',certNumber:'ISO-QMS-2023-441',issueDate:'2021-05-15',expiryDate:'2024-05-15'},
+      {certId:'CERT-002',supplierName:'Lucas TVS',certType:'IATF 16949',certNumber:'IATF-2022-889',issueDate:'2022-05-22',expiryDate:'2024-05-22'},
+      {certId:'CERT-003',supplierName:'Sundram Fasteners',certType:'ISO 14001',certNumber:'ENV-2021-331',issueDate:'2021-05-30',expiryDate:'2024-05-30'},
+      {certId:'CERT-004',supplierName:'Tata AutoComp Systems',certType:'ISO 9001:2015',certNumber:'ISO-QMS-2022-118',issueDate:'2022-06-01',expiryDate:'2025-06-01'},
+      {certId:'CERT-005',supplierName:'Bosch India Electronics',certType:'IATF 16949',certNumber:'IATF-2023-211',issueDate:'2023-01-15',expiryDate:'2026-01-15'},
+      {certId:'CERT-006',supplierName:'Motherson Sumi',certType:'ISO 14001',certNumber:'ENV-2023-557',issueDate:'2023-03-10',expiryDate:'2026-03-10'},
+      {certId:'CERT-007',supplierName:'Minda Industries',certType:'ISO 45001',certNumber:'OHS-2022-99',issueDate:'2022-07-20',expiryDate:'2024-07-20'},
+      {certId:'CERT-008',supplierName:'Gabriel India',certType:'VDA 6.3',certNumber:'VDA-2023-445',issueDate:'2023-09-01',expiryDate:'2026-09-01'},
+    ];
+
+    let allCerts = [], filtered = [];
+
+    function getUrgency(expiryDate) {
+      const days = daysUntil(expiryDate);
+      if (days < 0) return 'expired';
+      if (days < 30) return 'critical';
+      if (days < 60) return 'warning';
+      return 'ok';
+    }
+
+    async function loadCerts() {
+      allCerts = DEMO_CERTS;
+      filtered = [...allCerts];
+      renderAll();
+    }
+
+    function renderAll() {
+      renderKPIs();
+      renderBanner();
+      renderCards();
+      renderTable();
+    }
+
+    function renderKPIs() {
+      const critical = allCerts.filter(c => getUrgency(c.expiryDate) === 'critical').length;
+      const warning = allCerts.filter(c => getUrgency(c.expiryDate) === 'warning').length;
+      const ok = allCerts.filter(c => getUrgency(c.expiryDate) === 'ok').length;
+      document.getElementById('k-critical').textContent = critical;
+      document.getElementById('k-warning').textContent = warning;
+      document.getElementById('k-ok').textContent = ok;
+      document.getElementById('k-total-c').textContent = allCerts.length;
+    }
+
+    function renderBanner() {
+      const critical = filtered.filter(c => getUrgency(c.expiryDate) === 'critical');
+      document.getElementById('critical-banner').innerHTML = critical.length ?
+        `<div class="alert alert-danger animate-fade">🚨 <strong>${critical.length} certificate(s) expiring in less than 30 days!</strong> Immediate renewal action required: ${critical.map(c => `${c.supplierName} (${c.certType})`).join(', ')}</div>` : '';
+    }
+
+    function renderCards() {
+      document.getElementById('cert-grid').innerHTML = filtered.map(cert => {
+        const days = daysUntil(cert.expiryDate);
+        const urgency = getUrgency(cert.expiryDate);
+        const color = urgency === 'critical' ? 'var(--accent-red)' : urgency === 'warning' ? 'var(--accent-amber)' : urgency === 'expired' ? '#64748b' : 'var(--accent-green)';
+        return `
+          <div class="cert-card ${urgency}" style="animation:fadeIn 0.4s ease">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+              <div>
+                <div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;margin-bottom:4px">${cert.certType}</div>
+                <div style="font-weight:700;font-size:15px">${cert.supplierName}</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${cert.certNumber||'—'}</div>
+              </div>
+              <div style="text-align:right">
+                <div class="cert-expiry-days ${urgency}" style="font-size:28px">${Math.abs(days)}</div>
+                <div style="font-size:10px;color:var(--text-muted)">${days < 0 ? 'days ago' : 'days left'}</div>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:10px">
+              <span>Issued: ${formatDate(cert.issueDate)}</span>
+              <span style="font-weight:600;color:${color}">Expires: ${formatDate(cert.expiryDate)}</span>
+            </div>
+            ${urgency === 'critical' || urgency === 'warning' ? `
+              <button class="btn btn-sm btn-primary" style="width:100%;margin-top:10px" onclick="sendRenewalReminder('${cert.supplierName}','${cert.certType}')">
+                📧 Send Renewal Reminder
+              </button>` : ''}
+          </div>`;
+      }).join('') || '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted)">No certificates found.</div>';
+    }
+
+    function renderTable() {
+      document.getElementById('cert-tbody').innerHTML = filtered.map(cert => {
+        const days = daysUntil(cert.expiryDate);
+        const urgency = getUrgency(cert.expiryDate);
+        const dayColor = urgency==='critical'?'var(--accent-red)':urgency==='warning'?'var(--accent-amber)':urgency==='expired'?'var(--text-muted)':'var(--accent-green)';
+        return `<tr>
+          <td style="font-weight:600;color:var(--text-primary)">${cert.supplierName}</td>
+          <td>${cert.certType}</td><td style="font-family:monospace;font-size:12px">${cert.certNumber||'—'}</td>
+          <td>${formatDate(cert.issueDate)}</td>
+          <td style="font-weight:600;color:${dayColor}">${formatDate(cert.expiryDate)}</td>
+          <td style="font-weight:700;color:${dayColor}">${days < 0 ? 'Expired' : days + 'd'}</td>
+          <td>${statusBadge(urgency==='critical'?'Critical':urgency==='warning'?'Warning':urgency==='expired'?'Expired':'Active')}</td>
+          <td><button class="btn btn-sm btn-secondary" onclick="sendRenewalReminder('${cert.supplierName}','${cert.certType}')">📧 Remind</button></td>
+        </tr>`;
+      }).join('');
+    }
+
+    function filterCerts() {
+      const q = document.getElementById('cert-search').value.toLowerCase();
+      const u = document.getElementById('filter-urgency').value;
+      const t = document.getElementById('filter-cert-type').value;
+      filtered = allCerts.filter(c =>
+        (!q || c.supplierName.toLowerCase().includes(q) || c.certType.toLowerCase().includes(q)) &&
+        (!u || getUrgency(c.expiryDate) === u) &&
+        (!t || c.certType === t)
+      );
+      renderAll();
+    }
+
+    function openAddModal() { document.getElementById('add-modal').classList.add('open'); }
+
+    function addCert() {
+      const supplier = document.getElementById('c-supplier').value;
+      if (!supplier) { showNotification('⚠️ Please select a supplier', 'warning'); return; }
+      const newCert = {
+        certId: 'CERT-' + Date.now(),
+        supplierName: supplier,
+        certType: document.getElementById('c-type').value,
+        certNumber: document.getElementById('c-num').value || 'MANUAL-' + Date.now(),
+        issueDate: document.getElementById('c-issue').value,
+        expiryDate: document.getElementById('c-expiry').value
+      };
+      allCerts.unshift(newCert); filtered = [...allCerts];
+      renderAll();
+      document.getElementById('add-modal').classList.remove('open');
+      showNotification('✅ Certificate added successfully!', 'success');
+    }
+
+    function sendRenewalReminder(supplier, certType) {
+      showNotification(`📧 SNS/SES reminder sent to ${supplier} for ${certType} renewal`, 'success');
+    }
+
+    function exportCertCSV() {
+      const rows = [['Supplier','Cert Type','Cert Number','Issue Date','Expiry Date','Days Left','Status'],
+        ...filtered.map(c => { const days = daysUntil(c.expiryDate); return [c.supplierName,c.certType,c.certNumber||'',c.issueDate,c.expiryDate,days<0?'Expired':days+'d',getUrgency(c.expiryDate)]; })];
+      const csv = rows.map(r => r.join(',')).join('\n');
+      const a = document.createElement('a'); a.href = 'data:text/csv,' + encodeURIComponent(csv);
+      a.download = 'certificates.csv'; a.click();
+    }
+
+    loadCerts();
+  </script>
+</body>
+</html>

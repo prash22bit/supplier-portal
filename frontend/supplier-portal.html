@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Supplier Portal – SupplierQ</title>
+  <meta name="description" content="Supplier document submission portal with drag-and-drop upload, AI processing, and compliance tracking."/>
+  <link rel="stylesheet" href="css/styles.css"/>
+</head>
+<body>
+  <div id="sidebar-root"></div>
+  <div id="header-root"></div>
+  <main class="main-content">
+    <!-- Step Wizard -->
+    <div class="card" style="margin-bottom:24px">
+      <div class="steps" id="steps-bar">
+        <div class="step active" id="step-ind-1">
+          <div style="text-align:center">
+            <div class="step-circle">1</div>
+            <div class="step-label">Company Info</div>
+          </div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step" id="step-ind-2">
+          <div style="text-align:center">
+            <div class="step-circle">2</div>
+            <div class="step-label">Documents</div>
+          </div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step" id="step-ind-3">
+          <div style="text-align:center">
+            <div class="step-circle">3</div>
+            <div class="step-label">Review & Submit</div>
+          </div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step" id="step-ind-4">
+          <div style="text-align:center">
+            <div class="step-circle">4</div>
+            <div class="step-label">AI Processing</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 1: Company Info -->
+    <div id="step-1" class="animate-fade">
+      <div class="card">
+        <h2 style="font-size:18px;font-weight:700;margin-bottom:6px">Company Information</h2>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:28px">Enter your supplier organization details</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+          <div class="form-group"><label class="form-label">Company Name *</label>
+            <input id="companyName" class="form-control" placeholder="e.g. Tata AutoComp Systems Ltd."/></div>
+          <div class="form-group"><label class="form-label">Supplier ID / GST No.</label>
+            <input id="supplierId" class="form-control" placeholder="e.g. SUP-2024-001 or GST No."/></div>
+          <div class="form-group"><label class="form-label">Contact Person *</label>
+            <input id="contactName" class="form-control" placeholder="Full name"/></div>
+          <div class="form-group"><label class="form-label">Email Address *</label>
+            <input id="contactEmail" class="form-control" type="email" placeholder="email@company.com"/></div>
+          <div class="form-group"><label class="form-label">Phone Number</label>
+            <input id="contactPhone" class="form-control" placeholder="+91 XXXXX XXXXX"/></div>
+          <div class="form-group"><label class="form-label">State / Region *</label>
+            <select id="state" class="form-control">
+              <option value="">Select State</option>
+              <option>Maharashtra</option><option>Tamil Nadu</option><option>Karnataka</option>
+              <option>Gujarat</option><option>Haryana</option><option>Rajasthan</option>
+              <option>Uttar Pradesh</option><option>West Bengal</option><option>Telangana</option>
+              <option>Andhra Pradesh</option><option>Punjab</option><option>Madhya Pradesh</option>
+              <option>Overseas - Germany</option><option>Overseas - Japan</option><option>Overseas - USA</option>
+            </select></div>
+          <div class="form-group"><label class="form-label">Component Category *</label>
+            <select id="category" class="form-control">
+              <option value="">Select Category</option>
+              <option>Metal Components</option><option>Plastics & Composites</option>
+              <option>Electronics & Semiconductors</option><option>Rubber & Seals</option>
+              <option>Fasteners & Hardware</option><option>Bearings & Transmission</option>
+              <option>Electrical Systems</option><option>Die Casting</option>
+              <option>Steering Systems</option><option>Braking Systems</option>
+            </select></div>
+          <div class="form-group"><label class="form-label">Annual Turnover (₹ Crores)</label>
+            <input id="turnover" class="form-control" type="number" placeholder="e.g. 250"/></div>
+          <div class="form-group col-span" style="grid-column:span 2">
+            <label class="form-label">Business Description</label>
+            <textarea id="description" class="form-control" rows="3" placeholder="Brief description of your manufacturing capabilities..."></textarea>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:8px">
+          <button class="btn btn-primary" onclick="goStep(2)">Next: Upload Documents →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Documents -->
+    <div id="step-2" style="display:none" class="animate-fade">
+      <div class="card">
+        <h2 style="font-size:18px;font-weight:700;margin-bottom:6px">Document Upload</h2>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:24px">Upload compliance certificates and quality documents. Our AI will extract key information automatically.</p>
+
+        <div class="alert alert-info" style="margin-bottom:20px">
+          🤖 <strong>AI-Powered Extraction:</strong> AWS Textract will automatically extract expiry dates, certification numbers, and compliance details from your documents.
+        </div>
+
+        <!-- Required Documents Checklist -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+          <div id="doc-iso9001" class="cert-card warning" style="cursor:pointer" onclick="triggerUpload('iso9001')">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div><div style="font-weight:700;font-size:14px">📄 ISO 9001:2015</div><div style="font-size:12px;color:var(--text-muted)">Quality Management System</div></div>
+              <span class="badge badge-amber" id="status-iso9001">Required</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" id="prog-iso9001" style="width:0%"></div></div>
+          </div>
+          <div id="doc-iatf" class="cert-card warning" style="cursor:pointer" onclick="triggerUpload('iatf')">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div><div style="font-weight:700;font-size:14px">📄 IATF 16949</div><div style="font-size:12px;color:var(--text-muted)">Automotive QMS Standard</div></div>
+              <span class="badge badge-amber" id="status-iatf">Required</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" id="prog-iatf" style="width:0%"></div></div>
+          </div>
+          <div id="doc-iso14001" class="cert-card" style="cursor:pointer" onclick="triggerUpload('iso14001')">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div><div style="font-weight:700;font-size:14px">📄 ISO 14001</div><div style="font-size:12px;color:var(--text-muted)">Environmental Management</div></div>
+              <span class="badge badge-gray" id="status-iso14001">Optional</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" id="prog-iso14001" style="width:0%"></div></div>
+          </div>
+          <div id="doc-ppap" class="cert-card" style="cursor:pointer" onclick="triggerUpload('ppap')">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div><div style="font-weight:700;font-size:14px">📄 PPAP Documents</div><div style="font-size:12px;color:var(--text-muted)">Production Part Approval</div></div>
+              <span class="badge badge-gray" id="status-ppap">Optional</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" id="prog-ppap" style="width:0%"></div></div>
+          </div>
+        </div>
+
+        <!-- Drag & Drop Zone -->
+        <div class="upload-zone" id="drop-zone" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleDrop(event)">
+          <div class="upload-icon">☁️</div>
+          <h3>Drag & Drop Files Here</h3>
+          <p>or click to browse — PDF, JPG, PNG up to 50MB</p>
+          <input type="file" id="file-input" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleFiles(this.files)"/>
+          <button class="btn btn-primary" style="margin-top:16px" onclick="document.getElementById('file-input').click()">Browse Files</button>
+        </div>
+
+        <!-- Uploaded Files List -->
+        <div id="files-list" style="margin-top:20px"></div>
+
+        <div style="display:flex;justify-content:space-between;margin-top:24px">
+          <button class="btn btn-secondary" onclick="goStep(1)">← Back</button>
+          <button class="btn btn-primary" onclick="goStep(3)">Next: Review →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Review -->
+    <div id="step-3" style="display:none" class="animate-fade">
+      <div class="card">
+        <h2 style="font-size:18px;font-weight:700;margin-bottom:6px">Review & Submit</h2>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:24px">Please review your submission before sending.</p>
+        <div id="review-content"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:24px">
+          <button class="btn btn-secondary" onclick="goStep(2)">← Back</button>
+          <button class="btn btn-primary" onclick="submitForm()" id="submit-btn">🚀 Submit for Review</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: AI Processing -->
+    <div id="step-4" style="display:none" class="animate-fade">
+      <div class="card" style="text-align:center;padding:60px 40px">
+        <div style="font-size:64px;margin-bottom:24px">🤖</div>
+        <h2 style="font-size:22px;font-weight:800;margin-bottom:12px">AI Processing Your Documents</h2>
+        <p style="color:var(--text-muted);margin-bottom:36px">AWS Textract is extracting text, AWS Comprehend is analyzing entities and expiry dates.</p>
+        <div id="processing-steps"></div>
+        <div id="processing-done" style="display:none;margin-top:36px">
+          <div style="font-size:48px;margin-bottom:16px">✅</div>
+          <h3 style="font-size:18px;font-weight:700;color:var(--accent-green);margin-bottom:8px">Submission Complete!</h3>
+          <p style="color:var(--text-muted);margin-bottom:24px">Your documents have been submitted for quality review. You'll receive email updates on the audit progress.</p>
+          <div id="extracted-info" style="text-align:left;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:24px"></div>
+          <a href="dashboard.html" class="btn btn-primary">← Back to Dashboard</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script>
+    requireAuth();
+    document.getElementById('sidebar-root').innerHTML = renderSidebar('supplier-portal');
+    document.getElementById('header-root').innerHTML = renderHeader('Supplier Portal', 'Submit documents and compliance certificates');
+
+    let currentStep = 1;
+    let uploadedFiles = [];
+
+    function goStep(n) {
+      if (n === 3) buildReview();
+      document.querySelectorAll('[id^="step-"]').forEach(el => { if (el.id.startsWith('step-') && el.id !== 'steps-bar' && el.id !== 'step-ind-1') el.style.display = 'none'; });
+      document.getElementById('step-' + n).style.display = 'block';
+      // update indicator
+      for (let i = 1; i <= 4; i++) {
+        const ind = document.getElementById('step-ind-' + i);
+        ind.classList.remove('active', 'completed');
+        if (i < n) ind.classList.add('completed');
+        if (i === n) ind.classList.add('active');
+      }
+      currentStep = n;
+    }
+
+    function triggerUpload(type) { document.getElementById('file-input').dataset.docType = type; document.getElementById('file-input').click(); }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      document.getElementById('drop-zone').classList.remove('dragover');
+      handleFiles(e.dataTransfer.files);
+    }
+
+    function handleFiles(files) {
+      Array.from(files).forEach(file => {
+        const id = 'f-' + Date.now() + Math.random().toString(36).slice(2,5);
+        uploadedFiles.push({ id, file, name: file.name, size: file.size, type: document.getElementById('file-input').dataset.docType || 'general', status: 'uploading' });
+        simulateUpload(id);
+        updateDocStatus(document.getElementById('file-input').dataset.docType || 'general');
+      });
+      renderFilesList();
+    }
+
+    function simulateUpload(id) {
+      const entry = uploadedFiles.find(f => f.id === id);
+      if (!entry) return;
+      let p = 0;
+      const interval = setInterval(() => {
+        p += Math.random() * 15;
+        if (p >= 100) { p = 100; entry.status = 'complete'; clearInterval(interval); }
+        const el = document.getElementById('fbar-' + id);
+        if (el) el.style.width = p + '%';
+        renderFilesList();
+      }, 200);
+    }
+
+    function updateDocStatus(type) {
+      const typeMap = { iso9001: 'ISO 9001:2015', iatf: 'IATF 16949', iso14001: 'ISO 14001', ppap: 'PPAP' };
+      if (typeMap[type]) {
+        document.getElementById('status-' + type).className = 'badge badge-green';
+        document.getElementById('status-' + type).textContent = 'Uploaded ✓';
+        document.getElementById('prog-' + type).style.width = '100%';
+        document.getElementById('doc-' + type).className = 'cert-card ok';
+      }
+    }
+
+    function renderFilesList() {
+      document.getElementById('files-list').innerHTML = uploadedFiles.length ? `
+        <h4 style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:12px">UPLOADED FILES (${uploadedFiles.length})</h4>
+        ${uploadedFiles.map(f => `
+          <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;margin-bottom:8px">
+            <span style="font-size:24px">${f.name.endsWith('.pdf')?'📄':f.name.match(/\.(jpg|jpeg|png)$/i)?'🖼️':'📎'}</span>
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:13px">${f.name}</div>
+              <div style="font-size:11px;color:var(--text-muted)">${(f.size/1024/1024).toFixed(2)} MB • ${f.type}</div>
+              <div class="progress-bar"><div class="progress-fill" id="fbar-${f.id}" style="width:${f.status==='complete'?100:30}%"></div></div>
+            </div>
+            <span class="${f.status==='complete'?'badge badge-green':'badge badge-amber'}">${f.status==='complete'?'✓ Done':'Uploading...'}</span>
+            <button onclick="removeFile('${f.id}')" style="background:none;border:none;color:var(--accent-red);cursor:pointer;font-size:16px">✕</button>
+          </div>`).join('')}
+      ` : '';
+    }
+
+    function removeFile(id) {
+      uploadedFiles = uploadedFiles.filter(f => f.id !== id);
+      renderFilesList();
+    }
+
+    function buildReview() {
+      const data = {
+        companyName: document.getElementById('companyName').value || '—',
+        supplierId: document.getElementById('supplierId').value || 'Auto-generated',
+        contactName: document.getElementById('contactName').value || '—',
+        contactEmail: document.getElementById('contactEmail').value || '—',
+        state: document.getElementById('state').value || '—',
+        category: document.getElementById('category').value || '—'
+      };
+      document.getElementById('review-content').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px">
+          ${Object.entries(data).map(([k,v]) => `
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:14px">
+              <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;margin-bottom:4px">${k.replace(/([A-Z])/g,' $1').trim()}</div>
+              <div style="font-weight:600">${v}</div>
+            </div>`).join('')}
+        </div>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:20px">
+          <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;margin-bottom:8px">Documents (${uploadedFiles.length})</div>
+          ${uploadedFiles.length ? uploadedFiles.map(f => `<div style="font-size:13px;padding:4px 0;border-bottom:1px solid var(--border)">📄 ${f.name} <span class="badge badge-green" style="float:right">Ready</span></div>`).join('') : '<p style="color:var(--text-muted);font-size:13px">No documents uploaded. Please add required certificates.</p>'}
+        </div>
+        <div class="alert alert-info">📋 By submitting, you confirm that all information is accurate and documents are authentic. Your submission will be reviewed by the quality management team within 5 business days.</div>`;
+    }
+
+    async function submitForm() {
+      const btn = document.getElementById('submit-btn');
+      btn.innerHTML = '<span class="spinning">⟳</span> Submitting...';
+      btn.disabled = true;
+      goStep(4);
+
+      // Simulate AI processing steps
+      const steps = [
+        { icon: '📤', label: 'Uploading documents to S3...', delay: 800 },
+        { icon: '🔍', label: 'AWS Textract extracting text...', delay: 1600 },
+        { icon: '🧠', label: 'AWS Comprehend analyzing entities...', delay: 2400 },
+        { icon: '📅', label: 'Extracting expiry dates and cert numbers...', delay: 3200 },
+        { icon: '💾', label: 'Saving to DynamoDB...', delay: 4000 },
+        { icon: '📧', label: 'Sending SNS/SES notifications...', delay: 4800 },
+      ];
+
+      const cont = document.getElementById('processing-steps');
+      steps.forEach((s, i) => {
+        setTimeout(() => {
+          const div = document.createElement('div');
+          div.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;animation:fadeIn 0.3s ease';
+          div.innerHTML = `<span>${s.icon}</span><span style="flex:1;font-size:13px">${s.label}</span><span class="badge badge-green">✓</span>`;
+          cont.appendChild(div);
+        }, s.delay);
+      });
+
+      setTimeout(() => {
+        document.getElementById('processing-done').style.display = 'block';
+        document.getElementById('extracted-info').innerHTML = `
+          <h4 style="font-size:14px;font-weight:700;margin-bottom:12px">🤖 AI Extraction Results</h4>
+          <div style="display:grid;gap:8px">
+            <div style="display:flex;justify-content:space-between;font-size:13px;border-bottom:1px solid var(--border);padding-bottom:6px"><span style="color:var(--text-muted)">ISO 9001 Cert No.</span><strong>ISO-QMS-2024-8821</strong></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;border-bottom:1px solid var(--border);padding-bottom:6px"><span style="color:var(--text-muted)">ISO 9001 Expiry</span><strong style="color:var(--accent-amber)">15 Sep 2025</strong></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;border-bottom:1px solid var(--border);padding-bottom:6px"><span style="color:var(--text-muted)">IATF 16949 Status</span><strong style="color:var(--accent-green)">Valid</strong></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text-muted)">Submission Reference</span><strong>SQP-${Date.now().toString().slice(-8)}</strong></div>
+          </div>`;
+      }, 5500);
+    }
+  </script>
+</body>
+</html>
